@@ -100,20 +100,21 @@ public class ComputationalMatrix {
     public String  calculateStandardForPrice(HashMap<String, Double> bb){
         double standard = returnCalculationFactor(bb)/maxGenerator(bb);
         if(0<standard || standard<30){
-            return "1,2"; //John might not be able to parse this kind of format, need to check
+            //return "1,2"; //John might not be able to parse this kind of format, need to check
         }
 
         else if(30<standard || standard<70){
-            return "1,2,3";
+            //return "1,2,3";
         }
 
         else if(30<standard || standard<70) {
-            return "1,2,3,4";
+            //return "1,2,3,4";
         }
-        return "1,2,3,4";   // this case is actually error
+        return "1";
+        //return "1,2,3,4";   // this case is actually error
     }
 
-    public Integer  calculateStandardForRadius(HashMap<String, Double> bb){
+    public int calculateStandardForRadius(HashMap<String, Double> bb){
         double standar = returnCalculationFactor(bb)/maxGenerator(bb);
         if(0<standar || standar<30){
             return 1000; //John might not be able to parse this kind of format, need to check
@@ -127,5 +128,24 @@ public class ComputationalMatrix {
             return 10000;
         }
         return 0;   // this case is actually error
+    }
+    public double  calculateRatingWeight(HashMap<String, Double> bb){
+        double standard = returnCalculationFactor(bb)/maxGenerator(bb);
+        return standard;
+    }
+    public double  calculateReviewWeight(HashMap<String, Double> bb){
+        double standard = returnCalculationFactor(bb)/maxGenerator(bb);
+        return standard;
+    }
+
+    public String choseSortingMethod () {
+        double ratingWeight = this.calculateRatingWeight(this.ratingMap);
+        double reviewWeight = this.calculateReviewWeight(this.reviewsMap);
+        if (ratingWeight > reviewWeight && Math.abs(ratingWeight - reviewWeight) > 10)
+            return "rating";
+        else if (ratingWeight > reviewWeight && Math.abs(reviewWeight - ratingWeight) > 10)
+            return "review_count";
+        else
+            return "best_match";
     }
 }

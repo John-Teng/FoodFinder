@@ -1,5 +1,6 @@
 package com.example.johnteng.foodfinder;
 
+import android.renderscript.ScriptGroup;
 import android.util.Log;
 import android.util.Pair;
 
@@ -32,7 +33,7 @@ public class readAPI extends Thread {
     private final String CLIENT_ID = "IOcbXtzaehe_QsCfBsGE8w";
     private final String CLIENT_SECRET = "8aQYbsawHFrnDNJLjGLwKbSseQGsIf5AkaFwHcBg4ZVf8e8drIvLKk0xUtfoYaHw";
     private final String auth = "https://api.yelp.com/oauth2/token";
-    private final String query = "https://api.yelp.com/v3/businesses/search";
+    private final String query = "https://api.yelp.com/v3/businesses/search?";
     public String JSONresponse = "";
     private jsonParser jp;
     List<Pair> searchParameters;
@@ -74,11 +75,14 @@ public class readAPI extends Thread {
             } else {
                 //If trying to make a search query
                 this.fillParameters();
-                url = new URL(query+addToQuery(searchParameters));
+                url = new URL(query + addToQuery(searchParameters));
+                Log.d("Request URL: ", url.toString());
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.setDoOutput(true);
                 urlConnection.setRequestProperty("Authorization", authResponse.tokenType + " " + authResponse.accessToken);//Authenticate the search request
+                urlConnection.setRequestProperty("User-Agent","Mozilla/5.0 ( compatible ) ");
+                urlConnection.setRequestProperty("Accept","*/*");
                 //OutputStream os = urlConnection.getOutputStream();
                 //BufferedWriter writer = new BufferedWriter(
                   //      new OutputStreamWriter(os, "UTF-8"));
@@ -94,12 +98,17 @@ public class readAPI extends Thread {
             urlConnection.connect();
 
             Log.d("Log","urlConnection is connected");
-
-            InputStream stream = urlConnection.getInputStream();
+            int status = urlConnection.getResponseCode();
+            Log.d("WEB RESPONSE", Integer.toString(status));
+            InputStream stream;
+            if (FoodFinder.authenticate)
+                 stream = urlConnection.getInputStream(); 
+            else
+                 stream = urlConnection.getErrorStream();
             br = new BufferedReader(new InputStreamReader(stream));
             sb = new StringBuffer();
             JSONresponse = createJSON(br, sb);
-            Log.d("Log",JSONresponse);
+            Log.d("JSON OBJECT IS",JSONresponse);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -124,12 +133,15 @@ public class readAPI extends Thread {
         }
         //Send the JSON object to either the Authentication handler or the Search handler
         if (FoodFinder.authenticate) {
-            jp.parseAuthJson(j);
+            Log.d("Authenticating:", JSONresponse);
             FoodFinder.authenticate = false;
+            jp.parseAuthJson(j);
+            JSONresponse = "";
         }
         else {
-            Log.d("Log", JSONresponse);
+            Log.d("Searching:", JSONresponse);
             jp.parseSearchJson(j);
+            JSONresponse = "";
         }
 
 
@@ -137,30 +149,32 @@ public class readAPI extends Thread {
     private String addToQuery(List<Pair> searchParameters) throws UnsupportedEncodingException
     {
         StringBuilder result = new StringBuilder();
-        boolean first = true;
+        boolean one = true;
 
         for (Pair p : searchParameters)
         {
-            if (first)
-                first = false;
+            if (one)
+                one = false;
             else
                 result.append("&");
-            result.append(URLEncoder.encode((String)p.first, "UTF-8"));
+            result.append(URLEncoder.encode((String)p.first.toString(), "UTF-8"));
             result.append("=");
-            result.append(URLEncoder.encode((String)p.second, "UTF-8"));
+            Log.d("Log", p.first.toString());
+            Log.d("Log", p.second.toString());
+            result.append(URLEncoder.encode((String)p.second.toString(), "UTF-8"));
         }
         //business/search?term=foo&location=barr&filters=baz
 
         return result.toString();
     }
 
-    private void fillParameters () {
+    private synchronized void fillParameters () {
 
         searchParameters.add(new Pair("term", foodQuery.term));
-        searchParameters.add(new Pair("location", foodQuery.location));
-        searchParameters.add(new Pair("sortBy", foodQuery.sortBy));
+        Log.d ("SEARCH PARAM term",foodQuery.term);
+        searchParameters.add(new Pair("sort_by", foodQuery.sortBy));
         searchParameters.add(new Pair("price", foodQuery.price));
-        searchParameters.add(new Pair("openNow", foodQuery.openNow));
+        searchParameters.add(new Pair("open_now", foodQuery.openNow));
         searchParameters.add(new Pair("latitude", foodQuery.latitude));
         searchParameters.add(new Pair("longitude", foodQuery.longitude));
         searchParameters.add(new Pair("radius", foodQuery.radius));

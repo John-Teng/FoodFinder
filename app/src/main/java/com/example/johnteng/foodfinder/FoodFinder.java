@@ -46,7 +46,7 @@ import twitter4j.conf.ConfigurationBuilder;
 
 
 
-public class FoodFinder extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener{
+public class FoodFinder extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private GoogleApiClient googleApiClient;
     private static final int PERMISSION_ACCESS_COARSE_LOCATION = 1;
@@ -64,6 +64,7 @@ public class FoodFinder extends AppCompatActivity implements GoogleApiClient.Con
     public final jsonParser jp = new jsonParser();
     JSONObject j = null;
     readAPI r;
+    ComputationalMatrix cm = new ComputationalMatrix();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,7 +77,7 @@ public class FoodFinder extends AppCompatActivity implements GoogleApiClient.Con
 
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[] { android.Manifest.permission.ACCESS_COARSE_LOCATION },
+            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_COARSE_LOCATION},
                     PERMISSION_ACCESS_COARSE_LOCATION);
         }
 
@@ -97,7 +98,7 @@ public class FoodFinder extends AppCompatActivity implements GoogleApiClient.Con
         TextView tvTelephone = (TextView) findViewById(R.id.tvTelephone);
         ImageView imgBusiness = (ImageView) findViewById(R.id.imgBusiness);
 
-        new DownloadImageTask(imgBusiness).execute("https://s3-media1.fl.yelpcdn.com/bphoto/HENovrpv3Uh0M6UONHT2XA/ms.jpg");
+        //new DownloadImageTask(imgBusiness).execute("https://s3-media1.fl.yelpcdn.com/bphoto/HENovrpv3Uh0M6UONHT2XA/ms.jpg");
 
         r = new readAPI(new jsonParser());
 
@@ -125,17 +126,17 @@ public class FoodFinder extends AppCompatActivity implements GoogleApiClient.Con
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(edHandle.getText().length() != 0){
+                if (edHandle.getText().length() != 0) {
                     Snackbar.make(view, "Contacting Watson...", Snackbar.LENGTH_LONG).show();
                     new Thread(new Runnable() {
                         public void run() {
                             getTweets(edHandle.getText().toString());
                         }
                     }).start();
-                }else{
+                } else {
                     makeToast(1);
                 }
-                if(CASE == 2){
+                if (CASE == 2) {
                     makeToast(2);
                 }
             }
@@ -167,7 +168,7 @@ public class FoodFinder extends AppCompatActivity implements GoogleApiClient.Con
     }
 
     @Override
-    public void onConnectionSuspended(int i){
+    public void onConnectionSuspended(int i) {
 
     }
 
@@ -200,7 +201,7 @@ public class FoodFinder extends AppCompatActivity implements GoogleApiClient.Con
         return super.onOptionsItemSelected(item);
     }
 
-    public void getPersonalityInsights(String text){
+    public void getPersonalityInsights(String text) {
         PersonalityInsights service = new PersonalityInsights();
         service.setUsernameAndPassword(username, password);
 
@@ -212,13 +213,26 @@ public class FoodFinder extends AppCompatActivity implements GoogleApiClient.Con
             e.printStackTrace();
         }
 
-        jp.parseWatson(j);
-        System.out.println(profile.toString());
+        jp.parseWatson(j);//Send the watson json object to be parsed, this is a synchronized call
+        setFoodQuery();
+        r.run();
+        //System.out.println(profile.toString());
     }
 
-    public void getTweets(String handle){
+    public void setFoodQuery () {
+        foodQuery.latitude = lat;
+        foodQuery.longitude = lon;
+        foodQuery.radius = cm.calculateStandardForRadius(cm.radiusMap);
+        foodQuery.limit = 1;
+        foodQuery.openNow = true;
+        foodQuery.term = "restaurants";
+        foodQuery.sortBy = cm.choseSortingMethod();
+        foodQuery.price = cm.calculateStandardForPrice(cm.priceMap);
+    }
+
+    public void getTweets(String handle) {
         String text = "";
-        Paging paging = new Paging(1,100);
+        Paging paging = new Paging(1, 100);
         ConfigurationBuilder cb = new ConfigurationBuilder();
         cb.setDebugEnabled(true)
                 .setOAuthConsumerKey(TWITTER_CONSUMER_KEY)
@@ -236,12 +250,12 @@ public class FoodFinder extends AppCompatActivity implements GoogleApiClient.Con
             for (int i = 0; i < statuses.size(); i++) {
                 Status status = statuses.get(i);
                 text += (status.getText());
-                Log.i("Tweet Count " + (i + 1), status.getText() + "\n\n");
+                //Log.i("Tweet Count " + (i + 1), status.getText() + "\n\n");
             }
-            if(text.length() != 0){
-                Log.d("Log","Outputting the JSON data");
+            if (text.length() != 0) {
+                Log.d("Log", "Outputting the JSON data");
                 getPersonalityInsights(text);
-            }else{
+            } else {
                 CASE = 2;
             }
         } catch (TwitterException te) {
@@ -249,15 +263,15 @@ public class FoodFinder extends AppCompatActivity implements GoogleApiClient.Con
         }
     }
 
-    public void makeToast(int CASE){
-        if(CASE == 1){
+    public void makeToast(int CASE) {
+        if (CASE == 1) {
             Toast.makeText(getApplicationContext(), "Please enter a Twitter handle", Toast.LENGTH_LONG).show();
-        }else if(CASE == 2){
+        } else if (CASE == 2) {
             Toast.makeText(getApplicationContext(), "I couldn't find any tweets!", Toast.LENGTH_LONG).show();
         }
     }
 
-    private void howToDialog(){
+    private void howToDialog() {
         LayoutInflater layoutInflater = LayoutInflater.from(this);
         View calibrateView = layoutInflater.inflate(R.layout.how_it_works_layout, null);
 
@@ -274,7 +288,8 @@ public class FoodFinder extends AppCompatActivity implements GoogleApiClient.Con
 
         dialogBuilder.show();
     }
-
+}
+/*
     private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
         ImageView bmImage;
 
@@ -300,3 +315,4 @@ public class FoodFinder extends AppCompatActivity implements GoogleApiClient.Con
         }
     }
 }
+*/
